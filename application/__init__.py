@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 
 from flask import Flask
@@ -7,6 +8,9 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_redis import FlaskRedis
 from flask_session import Session
 from flask_migrate import Migrate, MigrateCommand
+from flask_jsonrpc import JSONRPC
+from flask_marshmallow import Marshmallow
+
 
 from application.utils.config import load_config
 from application.utils.session import init_session
@@ -32,6 +36,11 @@ migrate = Migrate()
 # 日志对象
 log = Log()
 
+# jsonrpc模块实例化对象
+jsonrpc = JSONRPC(service_url="/api")
+
+# 数据转换器的对象创建
+ma = Marshmallow()
 
 def init_app(config_path):
     """
@@ -44,6 +53,9 @@ def init_app(config_path):
     # 项目根目录
     app.BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+    # 加载导包路径
+    sys.path.insert(0, os.path.join(app.BASE_DIR, "application/utils/language"))
+
     # 加载配置
     Config = load_config(config_path)
     app.config.from_object(Config)
@@ -51,6 +63,9 @@ def init_app(config_path):
     # 数据库初始化
     db.init_app(app)
     redis.init_app(app)
+
+    # 数据转换器的初始化，必须放在db初始化的后面
+    ma.init_app(app)
 
     # session存储初始化
     init_session(app)
@@ -72,5 +87,8 @@ def init_app(config_path):
 
     # 蓝图注册
     init_blueprint(app)
+
+    # 初始化json-rpc
+    jsonrpc.init_app(app)
 
     return manager

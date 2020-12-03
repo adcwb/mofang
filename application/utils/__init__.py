@@ -1,6 +1,6 @@
 from flask import Blueprint
 from importlib import import_module
-
+from application.apps import apps_path
 
 def path(rule, func_view):
     # 把蓝图下视图和路由之间的映射关系处理成字典结构，方便后面注册蓝图的时候，直接传参
@@ -16,7 +16,11 @@ def init_blueprint(app):
     """自动注册蓝图"""
     blueprint_path_list = app.config.get("INSTALLED_APPS")
     for blueprint_path in blueprint_path_list:
-        blueprint_name = blueprint_path.split(".")[-1]
+        if "." not in blueprint_path:
+            blueprint_name = blueprint_path
+            blueprint_path = apps_path + '.' + blueprint_name
+        else:
+            blueprint_name = blueprint_path.split(".")[-1]
 
         # 自动创建蓝图对象
         blueprint = Blueprint(blueprint_name, blueprint_path)

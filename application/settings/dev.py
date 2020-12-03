@@ -12,12 +12,12 @@ class Config(InitConfig):
     SQLALCHEMY_ECHO = True
 
     # redis
-    REDIS_URL = "redis://123456@127.0.0.1:6379/0"
+    REDIS_URL = "redis://@127.0.0.1:6379/0"
 
     # session存储配置
     SESSION_REDIS_HOST = "127.0.0.1"
     SESSION_REDIS_PORT = 6379
-    SESSION_REDIS_PWD = 123456
+    # SESSION_REDIS_PWD = 123456
     SESSION_REDIS_DB = 1
 
     # 日志配置
@@ -29,5 +29,18 @@ class Config(InitConfig):
 
     # 注册蓝图
     INSTALLED_APPS = [
-        "application.apps.home",
+        "home",
+        "users",
+        "marsh",
     ]
+
+    # 阿里云短信接口
+    AccessKeyId = '**********************'
+    AccessKeySecret = '**********************'
+
+    SMS_ACCOUNT_ID = "**************************"  # 接口主账号
+    SMS_ACCOUNT_TOKEN = "*************************"  # 认证token令牌
+    SMS_APP_ID = "*************************************"  # 应用ID
+    SMS_TEMPLATE_ID = 1  # 短信模板ID
+    SMS_EXPIRE_TIME = 60 * 5  # 短信有效时间，单位:秒/s
+    SMS_INTERVAL_TIME = 300  # 短信发送冷却时间，单位:秒/s

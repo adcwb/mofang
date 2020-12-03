@@ -34,7 +34,7 @@ class InitConfig():
 
     SESSION_REDIS_HOST = "127.0.0.1"
     SESSION_REDIS_PORT = 6379
-    SESSION_REDIS_PWD = 123456
+    # SESSION_REDIS_PWD = 123456
     SESSION_REDIS_DB = 0
 
     # 调整json数据转换中文的配置
