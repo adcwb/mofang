@@ -3,6 +3,7 @@ import sys
 import logging
 
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from flask_script import Manager
 from flask_sqlalchemy import SQLAlchemy
 from flask_redis import FlaskRedis
@@ -42,6 +43,9 @@ jsonrpc = JSONRPC(service_url="/api")
 # 数据转换器的对象创建
 ma = Marshmallow()
 
+# jwt认证模块实例化
+jwt = JWTManager()
+
 def init_app(config_path):
     """
     全局初始化
@@ -55,6 +59,7 @@ def init_app(config_path):
 
     # 加载导包路径
     sys.path.insert(0, os.path.join(app.BASE_DIR, "application/utils/language"))
+
 
     # 加载配置
     Config = load_config(config_path)
@@ -90,5 +95,8 @@ def init_app(config_path):
 
     # 初始化json-rpc
     jsonrpc.init_app(app)
+
+    # jwt初始化
+    jwt.init_app(app)
 
     return manager

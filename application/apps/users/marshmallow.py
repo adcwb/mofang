@@ -47,8 +47,15 @@ class UserSchema(SQLAlchemyAutoSchema):
 
         # todo 校验短信验证码
         code = redis.get("sms_%s" % data.get("mobile"))
+
+        if code is None:
+            raise ValidationError(message=Message.sms_code_expired, field_name="sms_code")
+
         sms_code = str(code, encoding='utf-8')
+
         if sms_code != data.get("sms_code"):
             raise ValidationError(message=Message.sms_code_error, field_name="sms_code")
 
+        redis.delete("sms_%s" % data["mobile"])
+        
         return data
