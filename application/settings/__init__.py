@@ -54,3 +54,18 @@ class InitConfig():
 
     # 总路由路径
     URL_PATH = "application.urls"
+
+    # admin站点配置
+    ADMIN_PATH = "application.backend"  # 默认admin总配置
+    FLASK_ADMIN_SWATCH = 'cerulean'  # 站点主题
+
+    # 国际化与本地化
+    LANGUAGE = "zh_CN"
+    TIMEZONE = "Asia/Shanghai"
+
+    # 针对babel模块的语言和设置
+    BABEL_DEFAULT_LOCALE = LANGUAGE
+    BABEL_DEFAULT_TIMEZONE = TIMEZONE
+
+    # 静态文件目录存储路径
+    STATIC_DIR = "application/static"

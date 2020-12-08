@@ -51,13 +51,15 @@ class Config(InitConfig):
     # 秘钥，默认是flask配置中的SECRET_KEY
     JWT_SECRET_KEY = "****************"
     # token令牌有效期，单位: 秒/s，默认:　datetime.timedelta(minutes=15) 或者 15 * 60
-    JWT_ACCESS_TOKEN_EXPIRES = 60
+    JWT_ACCESS_TOKEN_EXPIRES = 60 * 60
     # refresh刷新令牌有效期，单位: 秒/s，默认：datetime.timedelta(days=30) 或者 30*24*60*60
     JWT_REFRESH_TOKEN_EXPIRES = 30 * 24 * 60 * 60
     # 设置通过哪种方式传递jwt，默认是http请求头，也可以是query_string，json，cookies
-    JWT_TOKEN_LOCATION = "headers"
+    JWT_TOKEN_LOCATION = ["headers", "query_string"]
     # 当通过http请求头传递jwt时，请求头参数名称设置，默认值： Authorization
     JWT_HEADER_NAME = "Authorization"
+    # 当通过查询字符串传递jwt时，查询字符串的参数名称设置，默认：jwt
+    JWT_QUERY_STRING_NAME = "token"
     # 当通过http请求头传递jwt时，令牌的前缀。
     # 默认值为 "Bearer"，例如：Authorization: Bearer <JWT>
     JWT_HEADER_TYPE = "jwt"

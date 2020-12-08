@@ -16,3 +16,5 @@ class ErrorMessage():
     user_not_exists = "用户不存在！"
     password_error = "密码错误！"
     captcaht_no_match = "验证码验证失败！"
+    avatar_save_success = "用户头像保存成功！"
+    avatar_save_error = "用户头像保存失败！"

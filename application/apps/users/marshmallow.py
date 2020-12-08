@@ -1,9 +1,10 @@
 from marshmallow import Schema, fields, validate, validates, ValidationError
 from application.utils.language.message import ErrorMessage as Message
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, auto_field
-from marshmallow import post_load, pre_load, validates_schema
+from marshmallow import post_load, pre_load, validates_schema, post_dump
 from .models import User, db
 from application import redis
+
 
 class MobileSchema(Schema):
     mobile = fields.String(required=True, validate=validate.Regexp("^1[3-9]\d{9}$", error=Message.mobile_format_error))
@@ -57,5 +58,24 @@ class UserSchema(SQLAlchemyAutoSchema):
             raise ValidationError(message=Message.sms_code_error, field_name="sms_code")
 
         redis.delete("sms_%s" % data["mobile"])
-        
+
+        return data
+
+
+class UserInfoSchema(SQLAlchemyAutoSchema):
+    id = auto_field()
+    mobile = auto_field()
+    nickname = auto_field()
+    avatar = auto_field()
+
+    class Meta:
+        model = User
+        include_fk = True
+        include_relationships = True
+        fields = ["id", "mobile", "nickname", "avatar"]
+        sql_session = db.session
+
+    @post_dump()
+    def mobile_format(self, data, **kwargs):
+        data["mobile"] = data["mobile"][:3] + "****" + data["mobile"][-4:]
         return data

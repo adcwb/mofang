@@ -1,0 +1,12 @@
+mofang: ERROR 2020-12-06 18:02:40,654 tasks.py:34 短信发送失败!
+{"statusCode":"112310","statusMsg":"【短信】应用未上线，模板短信接收号码外呼受限"}
+mofang: ERROR 2020-12-06 18:02:44,430 tasks.py:34 短信发送失败!
+{"statusCode":"112310","statusMsg":"【短信】应用未上线，模板短信接收号码外呼受限"}
+mofang: ERROR 2020-12-06 18:02:48,027 tasks.py:34 短信发送失败!
+{"statusCode":"112310","statusMsg":"【短信】应用未上线，模板短信接收号码外呼受限"}
+mofang: ERROR 2020-12-06 18:02:51,823 tasks.py:34 短信发送失败!
+{"statusCode":"112310","statusMsg":"【短信】应用未上线，模板短信接收号码外呼受限"}
+mofang: ERROR 2020-12-06 18:02:55,636 tasks.py:34 短信发送失败!
+{"statusCode":"112310","statusMsg":"【短信】应用未上线，模板短信接收号码外呼受限"}
+mofang: ERROR 2020-12-06 18:02:59,553 tasks.py:34 短信发送失败!
+{"statusCode":"112310","statusMsg":"【短信】应用未上线，模板短信接收号码外呼受限"}

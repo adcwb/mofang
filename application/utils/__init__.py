@@ -42,5 +42,11 @@ def init_blueprint(app):
         # 注册模型
         import_module(blueprint_path + ".models")
 
+        # 加载蓝图内部的admin站点配置
+        try:
+            import_module(blueprint_path + ".admin")
+        except:
+            pass
+
         # 注册蓝图对象到app应用对象中,  url_prefix 蓝图的路由前缀
         app.register_blueprint(blueprint, url_prefix=url_prefix)

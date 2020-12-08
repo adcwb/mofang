@@ -10,5 +10,6 @@ class APIStatus():
     CODE_NO_USER = 1008  # 用户不存在
     CODE_PASSWORD_ERROR = 1009  # 密码错误
     CODE_CAPTCHA_ERROR = 1010  # 验证码验证失败
+    AVATAR_ERROR = 1011  # 头像上传失败
 
 

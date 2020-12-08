@@ -11,7 +11,9 @@ from flask_session import Session
 from flask_migrate import Migrate, MigrateCommand
 from flask_jsonrpc import JSONRPC
 from flask_marshmallow import Marshmallow
-
+from flask_admin import Admin, AdminIndexView
+from flask_babelex import Babel
+from faker import Faker
 
 from application.utils.config import load_config
 from application.utils.session import init_session
@@ -45,6 +47,12 @@ ma = Marshmallow()
 
 # jwt认证模块实例化
 jwt = JWTManager()
+
+# flask-admin模块实例化
+admin = Admin()
+
+# flask-babelex模块实例化
+babel = Babel()
 
 def init_app(config_path):
     """
@@ -98,5 +106,14 @@ def init_app(config_path):
 
     # jwt初始化
     jwt.init_app(app)
+
+    # admin站点
+    admin.init_app(app)
+
+    # 项目语言
+    babel.init_app(app)
+
+    # 数据种子生成器[faker]
+    app.faker = Faker(app.config.get("LANGUAGE"))
 
     return manager
