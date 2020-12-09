@@ -194,15 +194,34 @@ def info():
     }
 
 
+@jsonrpc.method("User.check")
+@jwt_required # 验证jwt
+def check():
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+    }
+
 
 @jsonrpc.method("User.refresh")
-@jwt_refresh_token_required
+@jwt_refresh_token_required # 验证refresh_token
 def refresh():
     """重新获取新的认证令牌token"""
-    current_user = get_jwt_identity()
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
     # 重新生成token
-    access_token = create_access_token(identity=current_user)
-    return access_token
+    access_token = create_access_token(identity=current_user_id)
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+        "access_token": access_token
+    }
 
 
 

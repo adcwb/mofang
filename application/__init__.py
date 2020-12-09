@@ -75,6 +75,7 @@ def init_app(config_path):
 
     # 数据库初始化
     db.init_app(app)
+    app.db = db
     redis.init_app(app)
 
     # 数据转换器的初始化，必须放在db初始化的后面
