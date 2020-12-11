@@ -130,4 +130,7 @@ dmypy.json
 .idea/
 .idea/*
 #application/settings
-#application/settings/*
+#application/settings/
+*application/static/*
+./application/static/*
+./application/static/

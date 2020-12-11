@@ -68,3 +68,7 @@ class Config(InitConfig):
     CAPTCHA_GATEWAY = "https://ssl.captcha.qq.com/ticket/verify"
     CAPTCHA_APP_ID = "2048217533"
     CAPTCHA_APP_SECRET_KEY = "0OnRy4X4QjGZqxXnahF2fSQ**"
+
+    # mongoDB配置信息
+    # MONGO_URI = "mongodb://mofang:123456@127.0.0.1:27017/mofang"
+    MONGO_URI = "mongodb://127.0.0.1:27017/mofang"

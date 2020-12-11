@@ -14,6 +14,7 @@ from flask_marshmallow import Marshmallow
 from flask_admin import Admin, AdminIndexView
 from flask_babelex import Babel
 from faker import Faker
+from flask_pymongo import PyMongo
 
 from application.utils.config import load_config
 from application.utils.session import init_session
@@ -54,6 +55,9 @@ admin = Admin()
 # flask-babelex模块实例化
 babel = Babel()
 
+# mongodb模块初始化
+mongo = PyMongo()
+
 def init_app(config_path):
     """
     全局初始化
@@ -77,6 +81,7 @@ def init_app(config_path):
     db.init_app(app)
     app.db = db
     redis.init_app(app)
+    mongo.init_app(app)
 
     # 数据转换器的初始化，必须放在db初始化的后面
     ma.init_app(app)

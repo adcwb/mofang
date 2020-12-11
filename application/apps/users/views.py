@@ -2,6 +2,7 @@ import requests
 import base64
 import uuid
 import os
+from datetime import datetime
 from flask import jsonify, json
 from sqlalchemy import or_
 from .models import User
@@ -9,7 +10,7 @@ from flask import current_app, request, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, \
     jwt_refresh_token_required
 
-from application import jsonrpc, db
+from application import jsonrpc, db, mongo
 from .marshmallow import MobileSchema, UserSchema, UserInfoSchema
 from marshmallow import ValidationError
 from application.utils.language.message import ErrorMessage as message
@@ -17,22 +18,16 @@ from application.utils.language.status import APIStatus as status
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-
 @jsonrpc.method("User.avatar.update")
-@jwt_required  # 验证jwt
+@jwt_required # 验证jwt
 def update_avatar(avatar):
-    """
-    更新用户头像
-    :param avatar:
-    :return:
-    """
-    # 1.接收客户端上传的头像信息
+    """获取用户信息"""
+    # 1. 接受客户端上传的头像信息
     ext = avatar[avatar.find("/") + 1:avatar.find(";")]  # 资源格式
     b64_avatar = avatar[avatar.find(",") + 1:]
     b64_image = base64.b64decode(b64_avatar)
     filename = uuid.uuid4()
     static_path = os.path.join(current_app.BASE_DIR, current_app.config["STATIC_DIR"])
-    print(static_path)
     with open("%s/%s.%s" % (static_path, filename, ext), "wb") as f:
         f.write(b64_image)
 
@@ -43,15 +38,19 @@ def update_avatar(avatar):
             "errno": status.CODE_NO_USER,
             "errmsg": message.user_not_exists,
         }
-    # 判断用户是否上传文件过程中取消,
-    if ext == "":
-        return {
-            "errno": status.AVATAR_ERROR,
-            "errmsg": message.avatar_save_error
-        }
-
     user.avatar = "%s.%s" % (filename, ext)
     db.session.commit()
+    # 添加修改记录！
+    document = {
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_nikcname": user.nickname,
+        "updated_time": datetime.now().timestamp(),  # 修改时间
+        "avatar": avatar,  # 图片内容
+        "type": "avatar",  # 本次操作的类型
+    }
+    mongo.db.user_info_history.insert_one(document)
+
     return {
         "errno": status.CODE_OK,
         "errmsg": message.avatar_save_success,
@@ -195,7 +194,7 @@ def info():
 
 
 @jsonrpc.method("User.check")
-@jwt_required # 验证jwt
+@jwt_required  # 验证jwt
 def check():
     return {
         "errno": status.CODE_OK,
@@ -204,7 +203,7 @@ def check():
 
 
 @jsonrpc.method("User.refresh")
-@jwt_refresh_token_required # 验证refresh_token
+@jwt_refresh_token_required  # 验证refresh_token
 def refresh():
     """重新获取新的认证令牌token"""
     current_user_id = get_jwt_identity()
@@ -223,5 +222,61 @@ def refresh():
         "access_token": access_token
     }
 
+@jsonrpc.method("User.transaction.password")
+@jwt_required      # 验证jwt
+def transaction_password(password1, password2, old_password=None):
+    """
+    交易密码的初始化和修改
+    1. 刚注册的用户，没有交易密码，所以此处填写的是新密码
+    2. 已经有了交易密码的用户，修改旧的交易密码
+    :param password1:
+    :param password2:
+    :param old_password:
+    :return:
+    """
 
+    if password1 != password2:
+        return {
+            "errno": status.CODE_TRANSACTION_PASSWORD_ERROR,
+            "errmsg": message.transaction_password_not_match
+        }
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
 
+    # 如果之前有存在交易密码，则需要验证旧密码
+    if user.transaction_password:
+        """修改"""
+        # 验证旧密码
+        ret = user.check_transaction_password(old_password)
+        if ret == False:
+            return {
+                "errno": status.CODE_PASSWORD_ERROR,
+                "errmsg": message.transaction_password_error
+            }
+
+    # 设置交易密码
+    user.transaction_password = password1
+    db.session.commit()
+
+    # 添加交易密码的修改记录，为了保证安全，仅仅记录旧密码！
+    if old_password:
+        document = {
+            "user_id": user.id,
+            "user_name": user.name,
+            "user_nikcname": user.nickname,
+            "updated_time": datetime.now().timestamp(),  # 修改时间
+            "transaction_password": old_password,  # 变更内容
+            "type": "transaction_password",  # 本次操作的类型
+        }
+
+        mongo.db.user_info_history.insert_one(document)
+
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok
+    }

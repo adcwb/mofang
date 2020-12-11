@@ -18,3 +18,5 @@ class ErrorMessage():
     captcaht_no_match = "验证码验证失败！"
     avatar_save_success = "用户头像保存成功！"
     avatar_save_error = "用户头像保存失败！"
+    transaction_password_not_match = "交易密码和确认密码不一致！"
+    transaction_password_error = "原交易密码输入有误！"

@@ -8,6 +8,7 @@ class User(BaseModel):
     name = db.Column(db.String(255), index=True, comment="用户账户")
     nickname = db.Column(db.String(255), comment="用户昵称")
     _password = db.Column(db.String(255), comment="登录密码")
+    _transaction_password = db.Column(db.String(255), comment="交易密码")
     age = db.Column(db.SmallInteger, comment="年龄")
     money = db.Column(db.Numeric(7, 2), comment="账户余额")
     ip_address = db.Column(db.String(255), default="", index=True, comment="登录IP")
@@ -34,6 +35,19 @@ class User(BaseModel):
     def check_password(self, rawpwd):
         """验证密码"""
         return check_password_hash(self.password, rawpwd)
+
+    @property
+    def transaction_password(self):
+        return self._transaction_password
+
+    @transaction_password.setter
+    def transaction_password(self, rawpwd):
+        """密码加密"""
+        self._transaction_password = generate_password_hash(rawpwd)
+
+    def check_transaction_password(self, rawpwd):
+        """验证密码"""
+        return check_password_hash(self.transaction_password, rawpwd)
 
 
 class UserProfile(BaseModel):
