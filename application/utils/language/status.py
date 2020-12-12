@@ -11,6 +11,7 @@ class APIStatus():
     CODE_PASSWORD_ERROR = 1009  # 密码错误
     CODE_CAPTCHA_ERROR = 1010  # 验证码验证失败
     AVATAR_ERROR = 1011  # 头像上传失败
-    CODE_TRANSACTION_PASSWORD_ERROR = 10112  # 交易密码和确认密码不一致
-
+    CODE_TRANSACTION_PASSWORD_ERROR = 1012  # 交易密码和确认密码不一致
+    NICKNAME_NULL = 1013    # 昵称不能为空
+    CHANGE_PASSWD_ERROR = 1014  # 新旧密码一样
 

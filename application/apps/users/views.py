@@ -10,7 +10,7 @@ from flask import current_app, request, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, \
     jwt_refresh_token_required
 
-from application import jsonrpc, db, mongo
+from application import jsonrpc, db, mongo, redis
 from .marshmallow import MobileSchema, UserSchema, UserInfoSchema
 from marshmallow import ValidationError
 from application.utils.language.message import ErrorMessage as message
@@ -18,8 +18,9 @@ from application.utils.language.status import APIStatus as status
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
+
 @jsonrpc.method("User.avatar.update")
-@jwt_required # 验证jwt
+@jwt_required  # 验证jwt
 def update_avatar(avatar):
     """获取用户信息"""
     # 1. 接受客户端上传的头像信息
@@ -222,8 +223,9 @@ def refresh():
         "access_token": access_token
     }
 
+
 @jsonrpc.method("User.transaction.password")
-@jwt_required      # 验证jwt
+@jwt_required  # 验证jwt
 def transaction_password(password1, password2, old_password=None):
     """
     交易密码的初始化和修改
@@ -280,3 +282,112 @@ def transaction_password(password1, password2, old_password=None):
         "errno": status.CODE_OK,
         "errmsg": message.ok
     }
+
+
+@jsonrpc.method("User.change.nickname")
+@jwt_required  # 验证jwt
+def change_nickname(nickname):
+    """
+    用户昵称修改
+    :param nickname: 用户昵称
+    :return:
+    """
+    if nickname == "":
+        return {
+            "errno": status.NICKNAME_NULL,
+            "errmsg": message.nickname_null
+        }
+
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
+    user.nickname = nickname
+    db.session.commit()
+
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.avatar_save_success,
+        "nickname": nickname,
+    }
+
+
+@jsonrpc.method("User.change.password")
+@jwt_required  # 验证jwt
+def change_login_password(old_pwd, new_pwd):
+    """
+    用户登录密码修改接口
+    :param old_pwd: 旧密码
+    :param new_pwd: 新密码
+    :return: 返回前端的内容
+    """
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+    ret = user.check_password(old_pwd)
+    if ret == False:
+        return {
+            "errno": status.CODE_PASSWORD_ERROR,
+            "errmsg": message.password_error
+        }
+
+    if old_pwd == new_pwd:
+        return {
+            "errno": status.CHANGE_PASSWD_ERROR,
+            "errmsg": message.password_change_error
+        }
+
+    user.password = new_pwd
+    db.session.commit()
+
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.password_change_success,
+    }
+
+
+@jsonrpc.method("User.forget.password")
+def forget_password(mobile, sms_code, password, req_password):
+    """
+    密码修改接口
+    :param moblie:
+    :param sms_code:
+    :param password:
+    :param req_password:
+    :return:
+    """
+
+    if password != req_password:
+        raise ValidationError(message=message.password_not_match, field_name="password")
+
+    # 校验短信验证码
+    code = redis.get("sms_%s" % mobile)
+
+    if code is None:
+        raise ValidationError(message=message.sms_code_expired, field_name="sms_code")
+
+    sms_code1 = str(code, encoding='utf-8')
+
+    if sms_code1 != sms_code:
+        raise ValidationError(message=message.sms_code_error, field_name="sms_code")
+
+    redis.delete("sms_%s" % mobile)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>",mobile)
+    user = User.query.filter(User.mobile == mobile).first()
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>",user)
+    user.password = password
+    db.session.commit()
+
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.password_change_success,
+    }
+
