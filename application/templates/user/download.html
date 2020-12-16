@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta >
+    <title>Title</title>
+    <style>
+    body{
+        background-color: #000;
+    }
+    img{
+        width: 100%;
+    }
+    a{
+        color: #fff;
+    }
+    </style>
+</head>
+<body>
+    {% if position == "weixin" %}
+        <img src="/static/openbrowser.png" alt="">
+    {% else %}
+        <div id="content">
+
+        </div>
+        <script>
+        // 尝试通过打开客户端已经安装的魔方APP
+        var iframe = document.createElement("iframe");
+        iframe.src = "mofang://?uid={{ uid }}"; // app的私有协议
+        iframe.hidden=true;
+        document.body.appendChild(iframe);
+
+        // 如果等待了4秒以后，
+        setTimeout(function() {
+          if (!document.hidden) {
+            // 在4秒内如果页面出去了。说明这个时候document.hidden是true,这段代码就不执行了。
+            // 就算是再切回来也是不执行的。
+            // 如果你进了这个函数，没离开。。那就会在4秒后跳进这里
+            alert('你还没安装魔方APP，去下载去');
+            u = navigator.userAgent;
+            let isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1; //android终端
+            let isiOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); //ios终端
+            var content = document.querySelector("#content");
+            if (isiOS) {
+                // 去下载ios
+                content.innerHTML = `<a href="/static/app/mofang.apk">下载魔方APP</a>`;
+            }
+            if (isAndroid){
+                // 去下载安卓
+                content.innerHTML = `<a href="/static/app/mofang.apk">下载魔方APP</a>`;
+            }
+          }
+        }, 5000);
+
+        </script>
+    {% endif %}
+</body>
+</html>

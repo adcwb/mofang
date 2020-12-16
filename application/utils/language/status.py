@@ -14,4 +14,5 @@ class APIStatus():
     CODE_TRANSACTION_PASSWORD_ERROR = 1012  # 交易密码和确认密码不一致
     NICKNAME_NULL = 1013    # 昵称不能为空
     CHANGE_PASSWD_ERROR = 1014  # 新旧密码一样
+    CODE_UPDATE_USER_RELATION_ERROR = 1015  # 更新用户好友申请状态失败
 

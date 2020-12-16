@@ -3,20 +3,19 @@ import base64
 import uuid
 import os
 from datetime import datetime
-from flask import jsonify, json
-from sqlalchemy import or_
-from .models import User
-from flask import current_app, request, make_response
+
+from sqlalchemy import or_, and_
+from .models import User, UserRelation
+from flask import current_app, request, make_response, render_template
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, \
     jwt_refresh_token_required
 
-from application import jsonrpc, db, mongo, redis
-from .marshmallow import MobileSchema, UserSchema, UserInfoSchema
+from application import jsonrpc, db, mongo, redis, QRCode
+from .marshmallow import MobileSchema, UserSchema, UserInfoSchema, ChangePassword, UserSearchInfoSchema as usis
 from marshmallow import ValidationError
 from application.utils.language.message import ErrorMessage as message
 from application.utils.language.status import APIStatus as status
 from urllib.parse import urlencode
-from urllib.request import urlopen
 
 
 @jsonrpc.method("User.avatar.update")
@@ -66,7 +65,11 @@ def avatar():
     ext = avatar[avatar.find(".") + 1:]
     filename = avatar[:avatar.find(".")]
     static_path = os.path.join(current_app.BASE_DIR, current_app.config["STATIC_DIR"])
-    with open("%s/%s.%s" % (static_path, filename, ext), "rb") as f:
+    file = "%s/%s.%s" % (static_path, filename, ext)
+    if not os.path.isfile(file):
+        ext = "jpeg"
+        file = "%s/%s.%s" % (static_path, "822ed419-1e9c-49b6-841e-fa604bfc071b", ext)  # 在配置文件中设置为默认头像即可
+    with open(file, "rb") as f:
         content = f.read()
     response = make_response(content)
     response.headers["Content-Type"] = "image/%s" % ext
@@ -86,9 +89,8 @@ def mobile(mobile):
 
 
 @jsonrpc.method("User.register")
-def register(mobile, password, password2, sms_code):
+def register(mobile, password, password2, sms_code, invite_uid):
     """用户信息注册"""
-
     try:
         ms = MobileSchema()
         ms.load({"mobile": mobile})
@@ -98,7 +100,8 @@ def register(mobile, password, password2, sms_code):
             "mobile": mobile,
             "password": password,
             "password2": password2,
-            "sms_code": sms_code
+            "sms_code": sms_code,
+            "invite_uid": invite_uid,
         })
         data = {"errno": status.CODE_OK, "errmsg": us.dump(user)}
     except ValidationError as e:
@@ -358,36 +361,300 @@ def change_login_password(old_pwd, new_pwd):
 def forget_password(mobile, sms_code, password, req_password):
     """
     密码修改接口
-    :param moblie:
-    :param sms_code:
-    :param password:
-    :param req_password:
+    :param moblie: 手机号码
+    :param sms_code:　验证码
+    :param password:　新密码
+    :param req_password:　确认新密码
     :return:
     """
 
-    if password != req_password:
-        raise ValidationError(message=message.password_not_match, field_name="password")
+    try:
 
-    # 校验短信验证码
-    code = redis.get("sms_%s" % mobile)
+        change_password = ChangePassword()
+        change_password.load({
+            "mobile": mobile,
+            "password": password,
+            "password2": req_password,
+            "sms_code": sms_code
+        })
+        data = {"errno": status.CODE_OK, "errmsg": message.password_change_success, }
+    except ValidationError as e:
+        data = {"errno": status.CODE_VALIDATE_ERROR, "errmsg": e.messages}
+    return data
 
-    if code is None:
-        raise ValidationError(message=message.sms_code_expired, field_name="sms_code")
 
-    sms_code1 = str(code, encoding='utf-8')
+@jsonrpc.method("User.user.relation")
+@jwt_required  # 验证jwt
+def user_relation(account):
+    """搜索用户信息"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
 
-    if sms_code1 != sms_code:
-        raise ValidationError(message=message.sms_code_error, field_name="sms_code")
+    # 1. 识别搜索用户
+    receive_user_list = User.query.filter(or_(
+        User.mobile == account,
+        User.name == account,
+        User.nickname.contains(account),
+        User.email == account
+    )).all()
 
-    redis.delete("sms_%s" % mobile)
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>",mobile)
-    user = User.query.filter(User.mobile == mobile).first()
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>",user)
-    user.password = password
-    db.session.commit()
+    if len(receive_user_list) < 1:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.receive_user_not_exists,
+        }
+    # context 可用于把视图中的数据传递给marshmallow转换器中使用
+    marshmallow = usis(many=True, context={"user_id": user.id})
+    user_list = marshmallow.dump(receive_user_list)
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+        "user_list": user_list
+    }
+
+
+@jsonrpc.method("User.friend.add")
+@jwt_required  # 验证jwt
+def add_friend_apply(user_id):
+    """申请添加好友"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
+    receive_user = User.query.get(user_id)
+    if receive_user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.receive_user_not_exists,
+        }
+
+    # 查看是否被对方拉黑了
+
+    # 添加一个申请记录
+    document = {
+        "send_user_id": user.id,
+        "send_user_nickname": user.nickname,
+        "send_user_avatar": user.avatar,
+        "receive_user_id": receive_user.id,
+        "receive_user_nickname": receive_user.nickname,
+        "receive_user_avatar": receive_user.avatar,
+        "time": datetime.now().timestamp(),  # 操作时间
+        "status": 0,
+    }
+    mongo.db.user_relation_history.insert_one(document)
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+    }
+
+
+@jsonrpc.method("User.friend.apply")
+@jwt_required  # 验证jwt
+def add_friend_apply(user_id, agree, search_text):
+    """处理好友申请"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
+    receive_user = User.query.get(user_id)
+    if receive_user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.receive_user_not_exists,
+        }
+
+    relaionship = UserRelation.query.filter(
+        or_(
+            and_(UserRelation.send_user == user.id, UserRelation.receive_user == receive_user.id),
+            and_(UserRelation.receive_user == user.id, UserRelation.send_user == receive_user.id),
+        )
+    ).first()
+
+    if agree:
+        if receive_user.mobile == search_text:
+            chioce = 0
+        elif receive_user.name == search_text:
+            chioce = 1
+        elif receive_user.email == search_text:
+            chioce = 2
+        elif receive_user.nickname == search_text:
+            chioce = 3
+        else:
+            chioce = 4
+
+        if relaionship is not None:
+            relaionship.relation_status = 1
+            relaionship.relation_type = chioce
+            db.session.commit()
+        else:
+            relaionship = UserRelation(
+                send_user=user.id,
+                receive_user=receive_user.id,
+                relation_status=1,
+                relation_type=chioce,
+            )
+            db.session.add(relaionship)
+            db.session.commit()
+
+    # 调整mongoDB中用户关系的记录状态
+    query = {
+        "$or": [{
+            "$and": [
+                {
+                    "send_user_id": user.id,
+                    "receive_user_id": receive_user.id,
+                    "time": {"$gte": datetime.now().timestamp() - 60 * 60 * 24 * 7}
+                }
+            ],
+        }, {
+            "$and": [
+                {
+                    "send_user_id": receive_user.id,
+                    "receive_user_id": user.id,
+                    "time": {"$gte": datetime.now().timestamp() - 60 * 60 * 24 * 7}
+                }
+            ],
+        }]
+    }
+    if agree:
+        argee_status = 1
+    else:
+        argee_status = 2
+
+    ret = mongo.db.user_relation_history.update(query, {"$set": {"status": argee_status}})
+    if ret and ret.get("nModified") < 1:
+        return {
+            "errno": status.CODE_UPDATE_USER_RELATION_ERROR,
+            "errmsg": message.update_user_relation_fail,
+        }
+    else:
+        return {
+            "errno": status.CODE_OK,
+            "errmsg": message.update_success,
+        }
+
+
+@jsonrpc.method("Use.relation.history")
+@jwt_required  # 验证jwt
+def history_relation():
+    """查找好友关系历史记录"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
+    query = {
+        "$or": [
+            {"send_user_id": user.id, "time": {"$gte": datetime.now().timestamp() - 60 * 60 * 24 * 7}},
+            {"receive_user_id": user.id, "time": {"$gte": datetime.now().timestamp() - 60 * 60 * 24 * 7}},
+        ]
+    }
+    document_list = mongo.db.user_relation_history.find(query, {"_id": 0})
+    data_list = []
+    for document in document_list:
+        if document.get("send_user_id") == user.id and document.get("status") == 0:
+            document["status"] = (0, "已添加")
+        elif document.get("receive_user_id") == user.id and document.get("status") == 0:
+            document["status"] = (0, "等待通过")
+        elif document.get("status") == 1:
+            document["status"] = (1, "已通过")
+        else:
+            document["status"] = (2, "已拒绝")
+
+        data_list.append(document)
 
     return {
         "errno": status.CODE_OK,
-        "errmsg": message.password_change_success,
+        "errmsg": message.ok,
+        "data_list": data_list,
     }
+
+
+@jsonrpc.method("User.friend.list")
+@jwt_required  # 验证jwt
+def list_friend(page=1, limit=2):
+    """好友列表"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
+    pagination = UserRelation.query.filter(
+        or_(
+            and_(UserRelation.send_user == user.id),
+            and_(UserRelation.receive_user == user.id),
+        )
+    ).paginate(page, per_page=limit)
+    user_id_list = []
+    for relation in pagination.items:
+        if relation.send_user == user.id:
+            user_id_list.append(relation.receive_user)
+        else:
+            user_id_list.append(relation.send_user)
+
+    # 获取用户详细信息
+    user_list = User.query.filter(User.id.in_(user_id_list)).all()
+    friend_list = [{"avatar": user.avatar, "nickname": user.nickname, "id": user.id, "fruit": 0, "fruit_status": 0} for
+                   user in user_list]
+    pages = pagination.pages
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+        "friend_list": friend_list,
+        "pages": pages
+    }
+
+
+@jwt_required  # 验证jwt
+def invite_code():
+    """邀请好友的二维码"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+    static_path = os.path.join(current_app.BASE_DIR, current_app.config["STATIC_DIR"])
+    if not user.avatar:
+        user.avatar = current_app.config["DEFAULT_AVATAR"]
+    avatar = static_path + "/" + user.avatar
+    data = current_app.config.get("SERVER_URL",
+                                  request.host_url[:-1]) + "/users/invite/download?uid=%s" % current_user_id
+    image = QRCode.qrcode(data, box_size=16, icon_img=avatar)
+    b64_image = image[image.find(",") + 1:]
+    qrcode_iamge = base64.b64decode(b64_image)
+    response = make_response(qrcode_iamge)
+    response.headers["Content-Type"] = "image/png"
+    return response
+
+
+def invite_download():
+    uid = request.args.get("uid")
+    if "micromessenger" in request.headers.get("User-Agent").lower():
+        position = "weixin"
+    else:
+        position = "other"
+
+    return render_template("user/download.html", position=position, uid=uid)
+
 

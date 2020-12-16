@@ -24,3 +24,6 @@ class ErrorMessage():
     nickname_null = "昵称不能为空"
     password_change_success = "密码修改成功"
     password_change_error = "新密码不能和旧密码一样"
+    receive_user_not_exists = "搜索的用户不存在！"
+    update_user_relation_fail = "好友申请处理失败！"
+    update_success = "好友申请处理成功！"

@@ -72,3 +72,8 @@ class Config(InitConfig):
     # mongoDB配置信息
     # MONGO_URI = "mongodb://mofang:123456@127.0.0.1:27017/mofang"
     MONGO_URI = "mongodb://127.0.0.1:27017/mofang"
+
+    # 用户默认头像
+    DEFAULT_AVATAR = "95822582-39d8-43ce-9498-fdced7f6a144.jpeg"
+    # 服务端带外提供的url地址
+    # SERVER_URL = "http://127.0.0.1:5000"

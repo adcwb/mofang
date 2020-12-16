@@ -15,6 +15,7 @@ from flask_admin import Admin, AdminIndexView
 from flask_babelex import Babel
 from faker import Faker
 from flask_pymongo import PyMongo
+from flask_qrcode import QRcode
 
 from application.utils.config import load_config
 from application.utils.session import init_session
@@ -57,6 +58,9 @@ babel = Babel()
 
 # mongodb模块初始化
 mongo = PyMongo()
+
+# qrcode二维码生成
+QRCode = QRcode()
 
 def init_app(config_path):
     """
@@ -121,5 +125,8 @@ def init_app(config_path):
 
     # 数据种子生成器[faker]
     app.faker = Faker(app.config.get("LANGUAGE"))
+
+    # qrcode初始化配置
+    QRCode.init_app(app)
 
     return manager
