@@ -32,6 +32,7 @@ class Config(InitConfig):
         "home",
         "users",
         "marsh",
+        "application.apps.orchard",
     ]
 
     # 阿里云短信接口
@@ -77,3 +78,9 @@ class Config(InitConfig):
     DEFAULT_AVATAR = "95822582-39d8-43ce-9498-fdced7f6a144.jpeg"
     # 服务端带外提供的url地址
     # SERVER_URL = "http://127.0.0.1:5000"
+
+    # socketio
+    CORS_ALLOWED_ORIGINS = "*"
+    ASYNC_MODE = None
+    HOST = "0.0.0.0"
+    PORT = 5000

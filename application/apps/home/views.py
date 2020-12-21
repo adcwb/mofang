@@ -97,11 +97,15 @@ def sms(mobile):
 
     # 生成验证码
     sms_code = "%06d" % random.randint(0, 999999)
+    print(">>>>>>>>>>>>>>>>", sms_code)
     try:
+        print(">>>>>>>>>>>>>>>>111>>>>>>>>>>>>>>>>")
         from mycelery.sms.tasks import send_sms
         # 异步发送短信
         send_sms.delay(mobile=mobile, sms_code=sms_code)
+        print(">>>>>>>>>>>>>>>>222>>>>>>>>>>>>>>>>")
         # 返回结果
         return {"errno": status.CODE_OK, "errmsg": message.sms_is_send}
     except Exception as e:
+        print(">>>>>>>>>>>>>>>>333>>>>>>>>>>>>>>>>")
         return {"errno": status.CODE_SMS_ERROR, "errmsg": message.sms_send_error}

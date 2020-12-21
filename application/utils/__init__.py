@@ -48,5 +48,11 @@ def init_blueprint(app):
         except:
             pass
 
+        # 加载蓝图内部的socket接口
+        try:
+            import_module(blueprint_path + ".socket")
+        except:
+            pass
+
         # 注册蓝图对象到app应用对象中,  url_prefix 蓝图的路由前缀
         app.register_blueprint(blueprint, url_prefix=url_prefix)

@@ -658,3 +658,68 @@ def invite_download():
     return render_template("user/download.html", position=position, uid=uid)
 
 
+@jsonrpc.method("User.change_mobile")
+@jwt_required  # 验证jwt
+def list_friend(ticket, randstr, old_mobile, new_mobile, sms_code):
+    # 校验防水墙验证码
+    params = {
+        "aid": current_app.config.get("CAPTCHA_APP_ID"),
+        "AppSecretKey": current_app.config.get("CAPTCHA_APP_SECRET_KEY"),
+        "Ticket": ticket,
+        "Randstr": randstr,
+        "UserIP": request.remote_addr,
+    }
+    # 把字典数据转换成地址栏的查询字符串格式
+
+    params = urlencode(params)
+    url = current_app.config.get("CAPTCHA_GATEWAY")
+    f = requests.get(url, params=params)
+    res = f.json()
+    if int(res.get("response")) != 1:
+        # 验证失败
+        return {"errno": status.CODE_CAPTCHA_ERROR, "errmsg": message.captcaht_no_match}
+
+    # 查询当前登录用户
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    # print(">>>>", user)     # <User: 17319006603>
+    # print(">>>>", user.mobile, type(user.mobile))   # 17319006603 <class 'str'>
+
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+    if old_mobile == new_mobile:
+        return {
+            "errno": status.CHANGE_PASSWD_ERROR,
+            "errmsg": message.password_change_error,
+        }
+    elif user.mobile != old_mobile:
+        return {
+            "errno": status.CODE_NO_ACCOUNT,
+            "errmsg": message.mobile_is_null,
+        }
+
+    # 校验短信验证码
+    # 1. 从redis中提取验证码
+    redis_sms_code = redis.get("sms_%s" % old_mobile)
+    if redis_sms_code is None:
+        raise ValidationError(message=message.sms_code_expired, field_name="sms_code")
+    redis_sms_code = redis_sms_code.decode()
+    # 2. 从客户端提交的数据data中提取验证码
+    sms_code = sms_code
+    # 3. 字符串比较，如果失败，则抛出异常，否则，直接删除验证码
+    if sms_code != redis_sms_code:
+        raise ValidationError(message=message.sms_code_error, field_name="sms_code")
+
+    redis.delete("sms_%s" % old_mobile)
+
+    user.mobile = new_mobile
+    db.session.commit()
+
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+        "mobile": new_mobile
+    }

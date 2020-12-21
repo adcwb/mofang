@@ -16,6 +16,7 @@ from flask_babelex import Babel
 from faker import Faker
 from flask_pymongo import PyMongo
 from flask_qrcode import QRcode
+from flask_socketio import SocketIO
 
 from application.utils.config import load_config
 from application.utils.session import init_session
@@ -61,6 +62,10 @@ mongo = PyMongo()
 
 # qrcode二维码生成
 QRCode = QRcode()
+
+# socketio
+socketio = SocketIO()
+
 
 def init_app(config_path):
     """
@@ -128,5 +133,13 @@ def init_app(config_path):
 
     # qrcode初始化配置
     QRCode.init_app(app)
+
+    # socketio
+    socketio.init_app(app, cors_allowed_origins=app.config["CORS_ALLOWED_ORIGINS"], async_mode=app.config["ASYNC_MODE"],
+                      debug=app.config["DEBUG"])
+    # 改写runserver命令
+    if sys.argv[1] == "runserver":
+        manager.add_command("run", socketio.run(app, host=app.config["HOST"], port=app.config["PORT"]))
+
 
     return manager
