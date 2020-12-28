@@ -17,6 +17,8 @@ from faker import Faker
 from flask_pymongo import PyMongo
 from flask_qrcode import QRcode
 from flask_socketio import SocketIO
+from flask_cors import CORS
+
 
 from application.utils.config import load_config
 from application.utils.session import init_session
@@ -65,6 +67,9 @@ QRCode = QRcode()
 
 # socketio
 socketio = SocketIO()
+
+# flask_cors
+cors = CORS()
 
 
 def init_app(config_path):
@@ -133,6 +138,9 @@ def init_app(config_path):
 
     # qrcode初始化配置
     QRCode.init_app(app)
+
+    # cors
+    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
 
     # socketio
     socketio.init_app(app, cors_allowed_origins=app.config["CORS_ALLOWED_ORIGINS"], async_mode=app.config["ASYNC_MODE"],

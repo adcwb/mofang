@@ -11,6 +11,7 @@ class User(BaseModel):
     _transaction_password = db.Column(db.String(255), comment="交易密码")
     age = db.Column(db.SmallInteger, comment="年龄")
     money = db.Column(db.Numeric(7, 2), comment="账户余额")
+    credit = db.Column(db.Numeric(7, 2), default=0, comment="果子积分")
     ip_address = db.Column(db.String(255), default="", index=True, comment="登录IP")
     intro = db.Column(db.String(500), default="", comment="个性签名")
     avatar = db.Column(db.String(255), default="", comment="头像url地址")

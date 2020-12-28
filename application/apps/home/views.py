@@ -109,3 +109,5 @@ def sms(mobile):
     except Exception as e:
         print(">>>>>>>>>>>>>>>>333>>>>>>>>>>>>>>>>")
         return {"errno": status.CODE_SMS_ERROR, "errmsg": message.sms_send_error}
+ # todo
+#  celery or websocket bug

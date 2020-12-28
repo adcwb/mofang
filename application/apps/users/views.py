@@ -422,6 +422,7 @@ def user_relation(account):
 @jwt_required  # 验证jwt
 def add_friend_apply(user_id):
     """申请添加好友"""
+    print(user_id)
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     if user is None:
@@ -547,7 +548,7 @@ def add_friend_apply(user_id, agree, search_text):
         }
 
 
-@jsonrpc.method("Use.relation.history")
+@jsonrpc.method("User.relation.history")
 @jwt_required  # 验证jwt
 def history_relation():
     """查找好友关系历史记录"""
@@ -605,6 +606,9 @@ def list_friend(page=1, limit=2):
         )
     ).paginate(page, per_page=limit)
     user_id_list = []
+    # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    # print(pagination.items)
+    # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     for relation in pagination.items:
         if relation.send_user == user.id:
             user_id_list.append(relation.receive_user)
@@ -612,10 +616,16 @@ def list_friend(page=1, limit=2):
             user_id_list.append(relation.send_user)
 
     # 获取用户详细信息
+    # print(">>>>>>>>>>>>>>>>１>>>>>>>>>>>>>>>>>")
+    # print(user_id_list)
+    # print(">>>>>>>>>>>>>>>>１>>>>>>>>>>>>>>>>>")
     user_list = User.query.filter(User.id.in_(user_id_list)).all()
     friend_list = [{"avatar": user.avatar, "nickname": user.nickname, "id": user.id, "fruit": 0, "fruit_status": 0} for
                    user in user_list]
     pages = pagination.pages
+    # print(">>>>>>>>>>>>>>>>２>>>>>>>>>>>>>>>>>")
+    # print(friend_list)
+    # print(">>>>>>>>>>>>>>>>２>>>>>>>>>>>>>>>>>")
     return {
         "errno": status.CODE_OK,
         "errmsg": message.ok,
