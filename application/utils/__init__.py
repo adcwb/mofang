@@ -2,9 +2,9 @@ from flask import Blueprint
 from importlib import import_module
 from application.apps import apps_path
 
-def path(rule, func_view):
+def path(rule, func_view, **kwargs):
     # 把蓝图下视图和路由之间的映射关系处理成字典结构，方便后面注册蓝图的时候，直接传参
-    return {"rule": rule, "view_func": func_view}
+    return {"rule": rule, "view_func": func_view, **kwargs}
 
 
 def include(url_prefix, blueprint_path):

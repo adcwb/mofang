@@ -15,4 +15,5 @@ class APIStatus():
     NICKNAME_NULL = 1013    # 昵称不能为空
     CHANGE_PASSWD_ERROR = 1014  # 新旧密码一样
     CODE_UPDATE_USER_RELATION_ERROR = 1015  # 更新用户好友申请状态失败
+    CODE_RECHARGE_ERROR = 1016  # 充值发生错误
 

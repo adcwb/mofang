@@ -130,3 +130,12 @@ class UserRelation(BaseModel):
 
     def __repr__(self):
         return "用户%s通过%s对%s进行了%s操作" % (self.send_user, self.relation_type, self.receive_user, self.relation_status)
+
+
+class Recharge(BaseModel):
+    __tablename__ = "mf_user_recharge"
+    status = db.Column(db.Boolean, default=True, comment="状态(是否支付)")
+    out_trade_number = db.Column(db.String(64), unique=True, comment="订单号")
+    user_id = db.Column(db.Integer, comment="用户")
+    money = db.Column(db.Numeric(7, 2), comment="账户余额")
+    trade_number = db.Column(db.String(64), default="",  index=True, comment="流水号")

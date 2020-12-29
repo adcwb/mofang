@@ -27,3 +27,4 @@ class ErrorMessage():
     receive_user_not_exists = "搜索的用户不存在！"
     update_user_relation_fail = "好友申请处理失败！"
     update_success = "好友申请处理成功！"
+    recharge_not_exists = "充值记录不存在！"

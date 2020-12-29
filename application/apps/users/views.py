@@ -1,11 +1,14 @@
+import decimal
 import requests
 import base64
 import uuid
 import os
+import json
+import random
 from datetime import datetime
 
 from sqlalchemy import or_, and_
-from .models import User, UserRelation
+from .models import User, UserRelation, Recharge
 from flask import current_app, request, make_response, render_template
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, \
     jwt_refresh_token_required
@@ -16,6 +19,8 @@ from marshmallow import ValidationError
 from application.utils.language.message import ErrorMessage as message
 from application.utils.language.status import APIStatus as status
 from urllib.parse import urlencode
+from alipay import AliPay
+from alipay.utils import AliPayConfig
 
 
 @jsonrpc.method("User.avatar.update")
@@ -114,37 +119,39 @@ def login(ticket, randstr, account, password):
     """根据用户登录信息生成token"""
 
     # 校验防水墙验证码
-    params = {
-        "aid": current_app.config.get("CAPTCHA_APP_ID"),
-        "AppSecretKey": current_app.config.get("CAPTCHA_APP_SECRET_KEY"),
-        "Ticket": ticket,
-        "Randstr": randstr,
-        "UserIP": request.remote_addr,
-    }
-    # 把字典数据转换成地址栏的查询字符串格式
-    # aid=xxx&AppSecretKey=xxx&xxxxx
-    print(params)
-    params = urlencode(params)
-    print(">>>>", params)
-
-    url = current_app.config.get("CAPTCHA_GATEWAY")
-    # 发送http的get请求
-    # f = urlopen("%s?%s" % (url, params))
-    # https://ssl.captcha.qq.com/ticket/verify?aid=xxx&AppSecretKey=xxx&xxxxx
-    # content = f.read()
-    # res = json.loads(content)
+    # params = {
+    #     "aid": current_app.config.get("CAPTCHA_APP_ID"),
+    #     "AppSecretKey": current_app.config.get("CAPTCHA_APP_SECRET_KEY"),
+    #     "Ticket": ticket,
+    #     "Randstr": randstr,
+    #     "UserIP": request.remote_addr,
+    # }
+    # # 把字典数据转换成地址栏的查询字符串格式
+    # # aid=xxx&AppSecretKey=xxx&xxxxx
+    # print(params)
+    # print("12345666")
+    # params = urlencode(params)
+    # print(">>>>", params)
+    #
+    # url = current_app.config.get("CAPTCHA_GATEWAY")
+    # # 发送http的get请求
+    # # f = urlopen("%s?%s" % (url, params))
+    # # https://ssl.captcha.qq.com/ticket/verify?aid=xxx&AppSecretKey=xxx&xxxxx
+    # # content = f.read()
+    # # res = json.loads(content)
+    # # print(res)
+    #
+    # f = requests.get(url, params=params)
+    # # < Response[200] >
+    # # <class 'requests.models.Response'>
+    # # {'response': '1', 'evil_level': '0', 'err_msg': 'OK'}
+    # res = f.json()
     # print(res)
-
-    f = requests.get(url, params=params)
-    # < Response[200] >
-    # <class 'requests.models.Response'>
-    # {'response': '1', 'evil_level': '0', 'err_msg': 'OK'}
-    res = f.json()
-    print(res)
-    print(">>>>>", res.get("response"))
-    if int(res.get("response")) != 1:
-        # 验证失败
-        return {"errno": status.CODE_CAPTCHA_ERROR, "errmsg": message.captcaht_no_match}
+    # print(">>>>>", res.get("response"))
+    # if int(res.get("response")) != 1:
+    #     # 验证失败
+    #
+    #     return {"errno": status.CODE_CAPTCHA_ERROR, "errmsg": message.captcaht_no_match}
 
     # 1. 根据账户信息和密码获取用户
     if len(account) < 1:
@@ -172,6 +179,9 @@ def login(ticket, randstr, account, password):
         "errmsg": message.ok,
         "id": user.id,
         "nickname": user.nickname if user.nickname else account,
+        "avatar": user.avatar if user.avatar else current_app.config["DEFAULT_AVATAR"],
+        "money": float("%.2f" % user.money),
+        "credit": user.credit,
         "access_token": access_token,
         "refresh_token": refresh_token
     }
@@ -193,6 +203,8 @@ def info():
     return {
         "errno": status.CODE_OK,
         "errmsg": message.ok,
+        "money": float("%.2f" % user.money),
+        "credit": user.credit,
         **data
     }
 
@@ -733,3 +745,162 @@ def list_friend(ticket, randstr, old_mobile, new_mobile, sms_code):
         "errmsg": message.ok,
         "mobile": new_mobile
     }
+
+
+@jsonrpc.method("Recharge.create")
+@jwt_required  # 验证jwt
+def create_recharge(money=10):
+    """创建充值订单"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+    order_number = datetime.now().strftime("%y%m%d%H%M%S") + "%08d" % user.id + "%04d" % random.randint(0, 9999)
+
+    print(order_number)
+
+    recharge = Recharge(
+        status=False,
+        out_trade_number=order_number,
+        name="账号充值-%s元" % money,
+        user_id=user.id,
+        money=money
+    )
+    db.session.add(recharge)
+    db.session.commit()
+    # 创建支付宝sdk对象
+    app_private_key_string = open(
+        os.path.join(current_app.BASE_DIR, "application/apps/users/keys/app_private_key.pem")).read()
+    alipay_public_key_string = open(
+        os.path.join(current_app.BASE_DIR, "application/apps/users/keys/app_public_key.pem")).read()
+
+    alipay = AliPay(
+        appid=current_app.config.get("ALIPAY_APP_ID"),
+        app_notify_url=None,  # 默认回调url
+        app_private_key_string=app_private_key_string,
+        # 支付宝的公钥，验证支付宝回传消息使用，不是你自己的公钥,
+        alipay_public_key_string=alipay_public_key_string,
+        sign_type=current_app.config.get("ALIPAY_SIGN_TYPE"),
+        debug=False,  # 默认False
+        config=AliPayConfig(timeout=15)  # 可选, 请求超时时间
+    )
+
+    order_string = alipay.api_alipay_trade_app_pay(
+        out_trade_no=recharge.out_trade_number,  # 订单号
+        total_amount=float(recharge.money),  # 订单金额
+        subject=recharge.name,  # 订单标题
+        notify_url=current_app.config.get("ALIPAY_NOTIFY_URL")  # 服务端的地址，自定义一个视图函数给alipay
+    )
+
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+        "sandbox": current_app.config.get("ALIPAY_SANDBOX"),
+        "order_string": order_string,
+        "order_number": recharge.out_trade_number,
+    }
+
+
+def notify_response():
+    """支付宝支付结果异步通知处理"""
+    data = request.form.to_dict()
+    # sign 不能参与签名验证
+    signature = data.pop("sign")
+
+    app_private_key_string = open(
+        os.path.join(current_app.BASE_DIR, "application/apps/users/keys/app_private_key.pem")).read()
+    alipay_public_key_string = open(
+        os.path.join(current_app.BASE_DIR, "application/apps/users/keys/app_public_key.pem")).read()
+
+    alipay = AliPay(
+        appid=current_app.config.get("ALIPAY_APP_ID"),
+        app_notify_url=None,  # 默认回调url
+        app_private_key_string=app_private_key_string,
+        # 支付宝的公钥，验证支付宝回传消息使用，不是你自己的公钥,
+        alipay_public_key_string=alipay_public_key_string,
+        sign_type=current_app.config.get("ALIPAY_SIGN_TYPE"),
+        debug=False,  # 默认False
+        config=AliPayConfig(timeout=15)  # 可选, 请求超时时间
+    )
+
+    # verify
+    success = alipay.verify(data, signature)
+    if success and data["trade_status"] in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+        """充值成功"""
+        out_trade_number = data["out_trade_no"]
+        recharge = Recharge.query.filter(Recharge.out_trade_number == out_trade_number).first()
+        if recharge is None:
+            return "fail"
+        recharge.status = True
+        user = User.query.get(recharge.user_id)
+        if user is None:
+            return "fail"
+        user.money += recharge.money
+        db.session.commit()
+    return "success"  # 必须只能是success
+
+
+@jsonrpc.method("Recharge.return")
+@jwt_required  # 验证jwt
+def return_recharge(out_trade_number):
+    """同步通知处理"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user is None:
+        return {
+            "errno": status.CODE_NO_USER,
+            "errmsg": message.user_not_exists,
+        }
+
+    recharge = Recharge.query.filter(Recharge.out_trade_number == out_trade_number).first()
+    if recharge is None:
+        return {
+            "errno": status.CODE_RECHARGE_ERROR,
+            "errmsg": message.recharge_not_exists,
+        }
+
+    recharge.status = True
+    if user.money == None:
+        user.money = 0.00
+        db.session.commit()
+
+    user.money += recharge.money
+
+    db.session.commit()
+    return {
+        "errno": status.CODE_OK,
+        "errmsg": message.ok,
+        "money": float("%.2f" % user.money),
+    }
+
+
+def check_recharge():
+    """可以使用查询订单借口保证支付结果同步处理的安全性"""
+    # out_trade_numbe = "201229102634000000520662"
+    # app_private_key_string = open(os.path.join(current_app.BASE_DIR, "application/apps/users/keys/app_private_key.pem")).read()
+    # alipay_public_key_string = open(os.path.join(current_app.BASE_DIR, "application/apps/users/keys/app_public_key.pem")).read()
+    #
+    # alipay = AliPay(
+    #     appid= current_app.config.get("ALIPAY_APP_ID"),
+    #     app_notify_url=None,  # 默认回调url
+    #     app_private_key_string=app_private_key_string,
+    #     # 支付宝的公钥，验证支付宝回传消息使用，不是你自己的公钥,
+    #     alipay_public_key_string=alipay_public_key_string,
+    #     sign_type=current_app.config.get("ALIPAY_SIGN_TYPE"),
+    #     debug = False,  # 默认False
+    #     config = AliPayConfig(timeout=15)  # 可选, 请求超时时间
+    # )
+    # result = alipay.api_alipay_fund_trans_order_query(
+    #     order_id=out_trade_numbe
+    # )
+    # print(result)
+    # return result
+
+    """
+    path("/alipay/check", views.check_recharge),
+    """
+
+    return ""

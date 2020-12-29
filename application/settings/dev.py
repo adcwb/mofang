@@ -84,3 +84,9 @@ class Config(InitConfig):
     ASYNC_MODE = None
     HOST = "0.0.0.0"
     PORT = 5000
+
+    # 支付宝配置信息
+    ALIPAY_APP_ID = "2016102600767166"
+    ALIPAY_SIGN_TYPE = "RSA2"
+    ALIPAY_NOTIFY_URL = "http://127.0.0.1:5000/alipay/notify"
+    ALIPAY_SANDBOX = True
