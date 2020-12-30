@@ -28,3 +28,4 @@ class ErrorMessage():
     update_user_relation_fail = "好友申请处理失败！"
     update_success = "好友申请处理成功！"
     recharge_not_exists = "充值记录不存在！"
+    money_no_enough = "余额不足！"
