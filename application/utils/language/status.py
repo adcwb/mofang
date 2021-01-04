@@ -12,9 +12,12 @@ class APIStatus():
     CODE_CAPTCHA_ERROR = 1010  # 验证码验证失败
     AVATAR_ERROR = 1011  # 头像上传失败
     CODE_TRANSACTION_PASSWORD_ERROR = 1012  # 交易密码和确认密码不一致
-    NICKNAME_NULL = 1013    # 昵称不能为空
+    NICKNAME_NULL = 1013  # 昵称不能为空
     CHANGE_PASSWD_ERROR = 1014  # 新旧密码一样
     CODE_UPDATE_USER_RELATION_ERROR = 1015  # 更新用户好友申请状态失败
     CODE_RECHARGE_ERROR = 1016  # 充值发生错误
     CODE_NO_MONEY = 1017  # 余额不足
-
+    CODE_NO_PACKAGE = 1018  # 背包存储达到上限
+    CODE_NO_CREDIT = 1019  # 果子不足
+    CODE_NO_EMPTY = 1020  # 没有空余的宠物栏位
+    CODE_NO_SUCH_PET = 1021  # 没有该宠物

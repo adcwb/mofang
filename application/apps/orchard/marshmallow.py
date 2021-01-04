@@ -10,10 +10,11 @@ class GoodsInfoSchema(SQLAlchemyAutoSchema):
     price = auto_field()
     image = auto_field()
     remark = auto_field()
+    credit = auto_field()
 
     class Meta:
         model = Goods
-        fields = ["id", "name", "price", "image", "remark"]
+        fields = ["id", "name", "price", "image", "remark", "credit"]
         sql_session = db.session
 
     @post_dump()

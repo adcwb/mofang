@@ -29,3 +29,7 @@ class ErrorMessage():
     update_success = "好友申请处理成功！"
     recharge_not_exists = "充值记录不存在！"
     money_no_enough = "余额不足！"
+    no_package = "背包存储达到上限！"
+    credit_no_enough = "果子不足！"
+    pet_not_empty = "没有空余的宠物位置"
+    not_such_pet = "没有该宠物"
