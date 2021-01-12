@@ -181,7 +181,7 @@ def login(ticket, randstr, account, password):
         "nickname": user.nickname if user.nickname else account,
         "avatar": user.avatar if user.avatar else current_app.config["DEFAULT_AVATAR"],
         "money": float("%.2f" % user.money),
-        "credit": user.credit,
+        "credit": float(user.credit),
         "access_token": access_token,
         "refresh_token": refresh_token
     }
@@ -204,7 +204,7 @@ def info():
         "errno": status.CODE_OK,
         "errmsg": message.ok,
         "money": float("%.2f" % user.money),
-        "credit": user.credit,
+        "credit": float(user.credit),
         **data
     }
 

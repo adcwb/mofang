@@ -9,7 +9,7 @@ class Config(InitConfig):
     # 数据库连接设置
     SQLALCHEMY_DATABASE_URI = "mysql://mofang:123456@127.0.0.1:3306/mofang?charset=utf8mb4"
     # 是否显示原生SQL语句
-    SQLALCHEMY_ECHO = True
+    SQLALCHEMY_ECHO = False
 
     # redis
     REDIS_URL = "redis://@127.0.0.1:6379/0"
@@ -21,7 +21,7 @@ class Config(InitConfig):
     SESSION_REDIS_DB = 1
 
     # 日志配置
-    LOG_LEVEL = "DEBUG"  # 日志输出到文件中的最低等级
+    LOG_LEVEL = "INFO"  # 日志输出到文件中的最低等级
     LOG_DIR = "/logs/mofang.log"  # 日志存储目录
     LOG_MAX_BYTES = 300 * 1024 * 1024  # 单个日志文件的存储上限[单位: b]
     LOG_BACKPU_COUNT = 20  # 日志文件的最大备份数量
@@ -33,6 +33,7 @@ class Config(InitConfig):
         "users",
         "marsh",
         "application.apps.orchard",
+        "application.apps.live",
     ]
 
     # 阿里云短信接口

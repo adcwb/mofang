@@ -19,5 +19,7 @@ class APIStatus():
     CODE_NO_MONEY = 1017  # 余额不足
     CODE_NO_PACKAGE = 1018  # 背包存储达到上限
     CODE_NO_CREDIT = 1019  # 果子不足
-    CODE_NO_EMPTY = 1020  # 没有空余的宠物栏位
-    CODE_NO_SUCH_PET = 1021  # 没有该宠物
+    CODE_NO_EMPTY = 1020  # 没有空余的栏位
+    CODE_NO_SUCH_PROP = 1021  # 没有该道具
+    CODE_NO_PET = 1022  # 没有宠物
+    CODE_NO_FEED = 1023  # 饱食度超过90%，不能喂养
