@@ -119,39 +119,39 @@ def login(ticket, randstr, account, password):
     """根据用户登录信息生成token"""
 
     # 校验防水墙验证码
-    # params = {
-    #     "aid": current_app.config.get("CAPTCHA_APP_ID"),
-    #     "AppSecretKey": current_app.config.get("CAPTCHA_APP_SECRET_KEY"),
-    #     "Ticket": ticket,
-    #     "Randstr": randstr,
-    #     "UserIP": request.remote_addr,
-    # }
-    # # 把字典数据转换成地址栏的查询字符串格式
-    # # aid=xxx&AppSecretKey=xxx&xxxxx
-    # print(params)
-    # print("12345666")
-    # params = urlencode(params)
-    # print(">>>>", params)
-    #
-    # url = current_app.config.get("CAPTCHA_GATEWAY")
-    # # 发送http的get请求
-    # # f = urlopen("%s?%s" % (url, params))
-    # # https://ssl.captcha.qq.com/ticket/verify?aid=xxx&AppSecretKey=xxx&xxxxx
-    # # content = f.read()
-    # # res = json.loads(content)
-    # # print(res)
-    #
-    # f = requests.get(url, params=params)
-    # # < Response[200] >
-    # # <class 'requests.models.Response'>
-    # # {'response': '1', 'evil_level': '0', 'err_msg': 'OK'}
-    # res = f.json()
+    params = {
+        "aid": current_app.config.get("CAPTCHA_APP_ID"),
+        "AppSecretKey": current_app.config.get("CAPTCHA_APP_SECRET_KEY"),
+        "Ticket": ticket,
+        "Randstr": randstr,
+        "UserIP": request.remote_addr,
+    }
+    # 把字典数据转换成地址栏的查询字符串格式
+    # aid=xxx&AppSecretKey=xxx&xxxxx
+    print(params)
+    print("12345666")
+    params = urlencode(params)
+    print(">>>>", params)
+
+    url = current_app.config.get("CAPTCHA_GATEWAY")
+    # 发送http的get请求
+    # f = urlopen("%s?%s" % (url, params))
+    # https://ssl.captcha.qq.com/ticket/verify?aid=xxx&AppSecretKey=xxx&xxxxx
+    # content = f.read()
+    # res = json.loads(content)
     # print(res)
-    # print(">>>>>", res.get("response"))
-    # if int(res.get("response")) != 1:
-    #     # 验证失败
-    #
-    #     return {"errno": status.CODE_CAPTCHA_ERROR, "errmsg": message.captcaht_no_match}
+
+    f = requests.get(url, params=params)
+    # < Response[200] >
+    # <class 'requests.models.Response'>
+    # {'response': '1', 'evil_level': '0', 'err_msg': 'OK'}
+    res = f.json()
+    print(res)
+    print(">>>>>", res.get("response"))
+    if int(res.get("response")) != 1:
+        # 验证失败
+
+        return {"errno": status.CODE_CAPTCHA_ERROR, "errmsg": message.captcaht_no_match}
 
     # 1. 根据账户信息和密码获取用户
     if len(account) < 1:

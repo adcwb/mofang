@@ -21,7 +21,7 @@ class Config(InitConfig):
     SESSION_REDIS_DB = 1
 
     # 日志配置
-    LOG_LEVEL = "INFO"  # 日志输出到文件中的最低等级
+    LOG_LEVEL = "DEBUG"  # 日志输出到文件中的最低等级
     LOG_DIR = "/logs/mofang.log"  # 日志存储目录
     LOG_MAX_BYTES = 300 * 1024 * 1024  # 单个日志文件的存储上限[单位: b]
     LOG_BACKPU_COUNT = 20  # 日志文件的最大备份数量
@@ -91,3 +91,6 @@ class Config(InitConfig):
     ALIPAY_SIGN_TYPE = "RSA2"
     ALIPAY_NOTIFY_URL = "http://127.0.0.1:5000/alipay/notify"
     ALIPAY_SANDBOX = True
+
+    # ossrs 服务端
+    SRS_HTTP_API = "http://127.0.0.1:1985/api/v1/"

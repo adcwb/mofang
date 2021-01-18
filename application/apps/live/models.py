@@ -5,7 +5,8 @@ class LiveStream(BaseModel):
     """直播流管理"""
     __tablename__ = "mf_live_stream"
     name = db.Column(db.String(255), unique=True, comment="流名称")
-    room_name = db.Column(db.String(255), default="房间名称")
+    room_name = db.Column(db.String(255), default="未命名", comment="房间名称")
+    room_password = db.Column(db.String(255), default="", comment="房间密码")
     user = db.Column(db.Integer, comment="房主")
 
 
